@@ -1,10 +1,15 @@
+---
+output: 
+  html_document:
+    keep_md: true
+---
 # reproducible researc: week-2 assignment
 
 ## 1 loading the data
 This assignment makes use of data from a personal activity monitoring device. This device collects data at 5 minute intervals through out the day. The data consists of two months of data from an anonymous individual collected during the months of October and November, 2012 and include the number of steps taken in 5 minute intervals each day.   
 This dataset can be downloaded from:[activity dataset](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip)  
 
-### 1.1 loading the data
+### 1.1 loading the activity data
 ```{r echo=TRUE}
 activity_data<-read.csv("activity.csv",header = TRUE)
 tail(activity_data)
