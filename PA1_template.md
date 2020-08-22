@@ -1,0 +1,124 @@
+# reproducible researc: week-2 assignment
+
+## 1 loading the data
+This assignment makes use of data from a personal activity monitoring device. This device collects data at 5 minute intervals through out the day. The data consists of two months of data from an anonymous individual collected during the months of October and November, 2012 and include the number of steps taken in 5 minute intervals each day.   
+This dataset can be downloaded from:[activity dataset](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip)  
+
+### 1.1 loading the data
+```{r echo=TRUE}
+activity_data<-read.csv("activity.csv",header = TRUE)
+tail(activity_data)
+```
+
+## 2 What is mean total number of steps taken per day?
+
+### 2.1 caliculating the total number of steps taken per day
+```{r echo=TRUE}
+#extracting numerical data(data without NA's)
+num_data_steps<-activity_data[grep("^[0-9]",activity_data$steps),]
+head(num_data_steps)
+#caliculating total number of steps per day
+sum_data_steps<-tapply(num_data_steps$steps,num_data_steps$date, sum)
+sum_data_steps
+#creating a dataframe with dates, no.of steps on that day
+day_wise_data<-data.frame(date=unique(num_data_steps$date),steps=sum_data_steps)
+head(day_wise_data)
+```
+
+### 2.2 histogram of the total number of steps taken each day
+```{r echo=TRUE}
+hist(day_wise_data$steps,xlab = "total steps per day",ylab="frequency of no.of days ",main = "histogram of steps for each day",breaks = 20,col = "red")
+rug(day_wise_data$steps)
+```
+
+### 2.3 mean and median of the total number of steps taken per day
+```{r echo=TRUE}
+mean_data<-mean(sum_data_steps)
+mean_data
+median_data<-median(day_wise_data$steps)
+median_data
+```
+
+## 3 What is the average daily activity pattern?
+
+### 3.1 A time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+```{r echo=TRUE}
+interval_steps_sum<-aggregate(num_data_steps$steps,by=list(num_data_steps$interval),mean)
+colnames(interval_steps_sum)<-c("interval","steps")
+plot(interval_steps_sum$interval,interval_steps_sum$steps,type="l",ylab = "no.of steps taken",xlab="intarval",main="average number of steps for every 5-minute interval")
+```
+
+### 3.2 finding Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps
+```{r echo=TRUE}
+interval_steps_sum[max(interval_steps_sum$steps)==interval_steps_sum$steps,]
+```
+
+## 4 Imputing missing values
+
+### 4.1 finding number of missing values in the dataset
+```{r echo=TRUE}
+number_of_missing_values<-sum(is.na(activity_data))
+number_of_missing_values
+```
+
+### 4.2 Devising a strategy for filling in all of the missing values in the dataset by using the mean value of the interval.
+```{r echo=TRUE}
+#extracting the the rows with missingvalues into a different dataframe
+missing_data<-activity_data[is.na(activity_data),]
+#filling NA's with mean value of interval associated with that row
+missing_data$steps<-ifelse(missing_data$interval==interval_steps_sum$interval,as.integer(interval_steps_sum$steps))
+head(missing_data)
+```
+
+### 4.3 Creating a new dataset that is equal to the original dataset but with the missing data filled in.
+```{r echo=TRUE}
+activity_data_without_NA<-rbind(num_data_steps,missing_data)
+head(activity_data_without_NA)
+#confirming that there are no missing values in the data
+sum(is.na(activity_data_without_NA))
+```
+
+### 4.4  histogram of the total number of steps taken each day
+```{r echo=TRUE}
+sum_data_steps_without_na<-tapply(activity_data_without_NA$steps,activity_data_without_NA$date,sum)
+hist(sum_data_steps_without_na,xlab = "total steps per day",ylab="frequency of no.of days ",main = "histogram of steps for each day with data without NA'S ",breaks = 20,col = "blue")
+rug(day_wise_data$steps)
+```
+
+### 4.5 mean and median of the total number of steps taken per day after filling out the missing values
+```{r echo=TRUE}
+sprintf("mean of data with NA's in it: %i",as.integer(mean(sum_data_steps)))
+sprintf("median of data with NA's in it: %i",as.integer(median(sum_data_steps)))
+sprintf("mean of data with no missing values(all missing values imputed): %i",as.integer(mean(sum_data_steps_without_na)))
+sprintf("median of data with no missing values(all missing values imputed): %i",as.integer(median(sum_data_steps_without_na)))
+```
+
+It is can be understood that the mean and median of the data with imputed missing values has lower values when compared to the mean and median values of data with NA's in it. We can further use any other imputation methods to study the trends and effects of missing values imputations on the data. 
+
+## 5 Are there differences in activity patterns between weekdays and weekends?
+
+### 5.1 Creating a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+```{r echo=TRUE}
+activity_data_without_NA$dayofweek <- weekdays(as.Date(activity_data_without_NA$date))
+activity_data_without_NA$weekend <-as.factor(activity_data_without_NA$dayofweek=="Saturday"|activity_data_without_NA$dayofweek=="Sunday")
+levels(activity_data_without_NA$weekend) <- c("Weekday", "Weekend")
+```
+
+### 5.2 Making a panel plot containing a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis)
+```{r}
+activity_data_weekday<-activity_data_without_NA[activity_data_without_NA$weekend=="Weekday",]
+head(activity_data_weekday)
+activity_data_weekend<-activity_data_without_NA[activity_data_without_NA$weekend=="Weekend",]
+head(activity_data_weekend)
+interval_steps_sum_weekday<-aggregate(activity_data_weekday$steps,by=list(activity_data_weekday$interval),mean)
+interval_steps_sum_weekday$weekend<-rep("Weekday",length(interval_steps_sum_weekday))
+head(interval_steps_sum_weekday)
+interval_steps_sum_weekend<-aggregate(activity_data_weekend$steps,by=list(activity_data_weekend$interval),mean)
+interval_steps_sum_weekend$weekend<-rep("Weekend",length(interval_steps_sum_weekend))
+interval_steps_sum_merged<-rbind(interval_steps_sum_weekday,interval_steps_sum_weekend)
+colnames(interval_steps_sum_merged)<-c("interval","steps","weekend")
+#final plot
+library(ggplot2)
+ggplot(interval_steps_sum_merged,aes(x = interval,y=steps))+geom_line()+facet_grid(weekend~.)+ggtitle("mean of steps for every 5-min interval in weekend and weekdays")
+
+```
